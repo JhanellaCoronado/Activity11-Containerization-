@@ -1,0 +1,41 @@
+---
+- name: Build and deploy Activity11 Docker container
+  hosts: localhost
+  become: yes
+  vars:
+    container_name: activity11_container
+    image_name: activity11:webdb
+    web_port: 8080
+    db_port: 3307
+
+  tasks:
+    - name: Build Docker image from Dockerfile
+      docker_image:
+        name: "{{ image_name }}"
+        source: build
+        build:
+          path: ./
+        state: present
+
+    - name: Remove existing container if exists
+      docker_container:
+        name: "{{ container_name }}"
+        state: absent
+
+    - name: Run Docker container
+      docker_container:
+        name: "{{ container_name }}"
+        image: "{{ image_name }}"
+        state: started
+        ports:
+          - "{{ web_port }}:80"
+          - "{{ db_port }}:3306"
+        restart_policy: always
+
+    - name: Verify container is running
+      command: docker ps
+      register: container_status
+
+    - name: Show container status
+      debug:
+        var: container_status.stdout_lines
